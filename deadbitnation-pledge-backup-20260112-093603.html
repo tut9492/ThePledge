@@ -1,0 +1,2365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DEADBITNATION - The Pledge</title>
+    
+    <!--
+    ============================================================================
+    MOONPAY COMMERCE INTEGRATION SETUP GUIDE
+    ============================================================================
+    
+    STEP 1: Create MoonPay Commerce Account
+    - Visit https://moonpay.dev.hel.io (testing) or https://moonpay.hel.io (production)
+    - Log in with wallet or email
+    - Complete your profile in Settings
+    - Set up wallets and invite team members if needed
+    
+    STEP 2: Create a Dynamic Pay Link
+    - Go to Developer section in dashboard
+    - Create a new Pay Link via API or dashboard
+    - IMPORTANT: Set "dynamic": true in the features object
+      This allows you to define the amount at charge creation time
+    - Configure product details, themes, and redirect URLs
+    
+    STEP 3: Set Up Redirect URLs
+    - Success URL: http://localhost:8000/deadbitnation-pledge.html?status=success
+      (Update for production: your-domain.com/deadbitnation-pledge.html?status=success)
+    - Cancel URL: http://localhost:8000/deadbitnation-pledge.html?status=cancelled
+      (Update for production: your-domain.com/deadbitnation-pledge.html?status=cancelled)
+    
+    STEP 4: Get Your Credentials
+    - Pay Link ID: Found in Pay Link details (paylinkId)
+    - API Key: Generate in Developer section > API Keys
+    
+    STEP 5: Update Configuration Below
+    - Replace 'YOUR_PAYLINK_ID_HERE' with your actual Pay Link ID
+    - Replace 'YOUR_API_KEY_HERE' with your actual API Key
+    - Set testMode to false for production
+    
+    STEP 6: Test Integration
+    - Use testMode: true for development
+    - Test with small amounts first
+    - Check browser console for API errors
+    - Verify redirect URLs work correctly
+    
+    MoonPay Commerce Documentation:
+    - Dashboard: https://moonpay.dev.hel.io (test) or https://moonpay.hel.io (prod)
+    - API Reference: Check Developer section in dashboard
+    - Dynamic Pay Links: Set "dynamic": true in features when creating Pay Link
+    
+    ============================================================================
+    -->
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        :root {
+            --win95-gray: #c0c0c0;
+            --win95-dark: #808080;
+            --win95-light: #ffffff;
+            --win95-blue: #000080;
+            --crt-bezel-dark: #0a0a0a;
+            --crt-bezel-mid: #1a1a1a;
+            --crt-bezel-light: #2a2a2a;
+        }
+        
+        body {
+            font-family: 'MS Sans Serif', Tahoma, sans-serif;
+            background: #000;
+            color: #000;
+            overflow: hidden;
+            min-height: 100vh;
+            padding: 0;
+            margin: 0;
+            position: relative;
+        }
+        
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: url('data:image/svg+xml;utf8,<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"><filter id="noiseFilter"><feTurbulence type="fractalNoise" baseFrequency="1.2" numOctaves="5" stitchTiles="stitch"/></filter><rect width="100%" height="100%" filter="url(%23noiseFilter)"/></svg>');
+            background-repeat: repeat;
+            opacity: 0.4;
+            pointer-events: none;
+            z-index: 0;
+            mix-blend-mode: overlay;
+            animation: tvNoise 0.08s infinite;
+        }
+        
+        @keyframes tvNoise {
+            0% { 
+                opacity: 0.4;
+                transform: translate(0, 0) scale(1);
+            }
+            10% { 
+                opacity: 0.5;
+                transform: translate(2px, -2px) scale(1.001);
+            }
+            20% { 
+                opacity: 0.45;
+                transform: translate(-2px, 2px) scale(0.999);
+            }
+            30% { 
+                opacity: 0.48;
+                transform: translate(2px, 2px) scale(1.001);
+            }
+            40% { 
+                opacity: 0.43;
+                transform: translate(-2px, -2px) scale(0.999);
+            }
+            50% { 
+                opacity: 0.47;
+                transform: translate(0, 0) scale(1);
+            }
+            60% { 
+                opacity: 0.46;
+                transform: translate(1px, 0) scale(1.0005);
+            }
+            70% { 
+                opacity: 0.44;
+                transform: translate(-1px, 0) scale(0.9995);
+            }
+            80% { 
+                opacity: 0.49;
+                transform: translate(0, 1px) scale(1.0005);
+            }
+            90% { 
+                opacity: 0.45;
+                transform: translate(0, -1px) scale(0.9995);
+            }
+            100% { 
+                opacity: 0.4;
+                transform: translate(0, 0) scale(1);
+            }
+        }
+        
+        body::after {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                repeating-linear-gradient(0deg, transparent 0px, rgba(255, 255, 255, 0.08) 1px, transparent 2px),
+                repeating-linear-gradient(90deg, transparent 0px, rgba(255, 255, 255, 0.08) 1px, transparent 2px);
+            pointer-events: none;
+            z-index: 0;
+            opacity: 0.6;
+            animation: scanlineMove 0.08s linear infinite;
+        }
+        
+        @keyframes scanlineMove {
+            0% { transform: translateY(0); opacity: 0.6; }
+            50% { transform: translateY(3px); opacity: 0.8; }
+            100% { transform: translateY(6px); opacity: 0.6; }
+        }
+        
+        /* TV Dust Particles */
+        .tv-dust {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+            overflow: hidden;
+        }
+        
+        .tv-dust::before {
+            content: '';
+            position: absolute;
+            width: 200%;
+            height: 200%;
+            top: -50%;
+            left: -50%;
+            background-image: 
+                radial-gradient(circle at 20% 30%, rgba(255, 255, 255, 0.25) 2px, transparent 2px),
+                radial-gradient(circle at 60% 70%, rgba(255, 255, 255, 0.22) 1.5px, transparent 1.5px),
+                radial-gradient(circle at 40% 50%, rgba(255, 255, 255, 0.2) 1px, transparent 1px),
+                radial-gradient(circle at 80% 20%, rgba(255, 255, 255, 0.23) 2px, transparent 2px),
+                radial-gradient(circle at 10% 80%, rgba(255, 255, 255, 0.21) 1.5px, transparent 1.5px),
+                radial-gradient(circle at 90% 60%, rgba(255, 255, 255, 0.24) 1px, transparent 1px),
+                radial-gradient(circle at 30% 10%, rgba(255, 255, 255, 0.19) 2px, transparent 2px),
+                radial-gradient(circle at 70% 90%, rgba(255, 255, 255, 0.22) 1.5px, transparent 1.5px);
+            background-size: 300px 300px, 250px 250px, 400px 400px, 350px 350px, 280px 280px, 320px 320px, 270px 270px, 290px 290px;
+            background-position: 0 0, 100px 150px, 200px 300px, 300px 50px, 150px 250px, 400px 200px, 50px 100px, 350px 350px;
+            animation: dustFloat 20s linear infinite;
+            opacity: 0.8;
+        }
+        
+        .tv-dust::after {
+            content: '';
+            position: absolute;
+            width: 200%;
+            height: 200%;
+            top: -50%;
+            left: -50%;
+            background-image: 
+                radial-gradient(circle at 15% 25%, rgba(255, 255, 255, 0.18) 1.5px, transparent 1.5px),
+                radial-gradient(circle at 55% 75%, rgba(255, 255, 255, 0.2) 1px, transparent 1px),
+                radial-gradient(circle at 35% 45%, rgba(255, 255, 255, 0.19) 2px, transparent 2px),
+                radial-gradient(circle at 85% 15%, rgba(255, 255, 255, 0.21) 1.5px, transparent 1.5px),
+                radial-gradient(circle at 5% 85%, rgba(255, 255, 255, 0.17) 1px, transparent 1px),
+                radial-gradient(circle at 95% 55%, rgba(255, 255, 255, 0.22) 2px, transparent 2px);
+            background-size: 280px 280px, 320px 320px, 260px 260px, 340px 340px, 300px 300px, 310px 310px;
+            background-position: 50px 200px, 250px 100px, 150px 400px, 400px 150px, 100px 300px, 350px 250px;
+            animation: dustFloat 25s linear infinite reverse;
+            opacity: 0.7;
+        }
+        
+        @keyframes dustFloat {
+            0% { transform: translate(0, 0) rotate(0deg); }
+            25% { transform: translate(20px, -30px) rotate(90deg); }
+            50% { transform: translate(-10px, -50px) rotate(180deg); }
+            75% { transform: translate(-30px, -20px) rotate(270deg); }
+            100% { transform: translate(0, 0) rotate(360deg); }
+        }
+        
+        /* Additional Static Layer */
+        .tv-static {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+            background-image: url('data:image/svg+xml;utf8,<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><filter id="staticNoise"><feTurbulence type="fractalNoise" baseFrequency="3.5" numOctaves="3" stitchTiles="stitch"/></filter><rect width="100%" height="100%" filter="url(%23staticNoise)" opacity="0.25"/></svg>');
+            background-repeat: repeat;
+            background-size: 50px 50px;
+        }
+
+        /* Horizontal static line that animates down */
+        .static-line {
+            position: fixed;
+            top: -10px;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(
+                to right,
+                transparent 0%,
+                rgba(255, 255, 255, 0.8) 20%,
+                rgba(255, 255, 255, 0.9) 50%,
+                rgba(255, 255, 255, 0.8) 80%,
+                transparent 100%
+            );
+            box-shadow: 
+                0 0 10px rgba(255, 255, 255, 0.6),
+                0 0 20px rgba(255, 255, 255, 0.4),
+                0 0 30px rgba(255, 255, 255, 0.2);
+            pointer-events: none;
+            z-index: 999;
+            animation: staticLineMove 40s linear infinite;
+            opacity: 0.7;
+        }
+
+        @keyframes staticLineMove {
+            0% {
+                top: -10px;
+                opacity: 0;
+                left: 0;
+                transform: translateX(0);
+            }
+            0.5% {
+                opacity: 0.7;
+                left: 0;
+                transform: translateX(0);
+            }
+            3.75% {
+                top: 15vh;
+                opacity: 0.7;
+                left: 0;
+                transform: translateX(0);
+            }
+            4% {
+                transform: translateX(-5px);
+                opacity: 0.3;
+            }
+            4.125% {
+                transform: translateX(8px);
+                opacity: 0.9;
+            }
+            4.25% {
+                transform: translateX(-3px);
+                opacity: 0.7;
+            }
+            4.375% {
+                transform: translateX(0);
+                opacity: 0.7;
+            }
+            8.75% {
+                top: 35vh;
+                opacity: 0.7;
+                transform: translateX(0);
+            }
+            11.25% {
+                top: 45vh;
+                opacity: 0.7;
+                transform: translateX(0);
+            }
+            11.5% {
+                transform: translateX(10px);
+                opacity: 0.2;
+            }
+            11.575% {
+                transform: translateX(-12px);
+                opacity: 1;
+            }
+            11.65% {
+                transform: translateX(6px);
+                opacity: 0.5;
+            }
+            11.75% {
+                transform: translateX(0);
+                opacity: 0.7;
+            }
+            15% {
+                top: 60vh;
+                opacity: 0.7;
+                transform: translateX(0);
+            }
+            18.75% {
+                top: 75vh;
+                opacity: 0.7;
+                transform: translateX(0);
+            }
+            19% {
+                transform: translateX(-8px);
+                opacity: 0.4;
+            }
+            19.05% {
+                transform: translateX(15px);
+                opacity: 0.8;
+            }
+            19.1% {
+                transform: translateX(-7px);
+                opacity: 0.6;
+            }
+            19.15% {
+                transform: translateX(4px);
+                opacity: 0.9;
+            }
+            19.25% {
+                transform: translateX(0);
+                opacity: 0.7;
+            }
+            21.25% {
+                top: 85vh;
+                opacity: 0.7;
+                transform: translateX(0);
+            }
+            24.5% {
+                top: 98vh;
+                opacity: 0.7;
+                transform: translateX(0);
+            }
+            25% {
+                top: 100vh;
+                opacity: 0;
+                transform: translateX(0);
+            }
+            25.1% {
+                top: -10px;
+                opacity: 0;
+                transform: translateX(0);
+            }
+            100% {
+                top: -10px;
+                opacity: 0;
+                transform: translateX(0);
+            }
+        }
+        
+        @keyframes staticFlicker {
+            0% { opacity: 0.15; }
+            5% { opacity: 0.4; }
+            10% { opacity: 0.2; }
+            15% { opacity: 0.35; }
+            20% { opacity: 0.25; }
+            25% { opacity: 0.45; }
+            30% { opacity: 0.18; }
+            35% { opacity: 0.3; }
+            40% { opacity: 0.22; }
+            45% { opacity: 0.38; }
+            50% { opacity: 0.2; }
+            55% { opacity: 0.32; }
+            60% { opacity: 0.24; }
+            65% { opacity: 0.4; }
+            70% { opacity: 0.19; }
+            75% { opacity: 0.28; }
+            80% { opacity: 0.42; }
+            85% { opacity: 0.21; }
+            90% { opacity: 0.35; }
+            95% { opacity: 0.26; }
+            100% { opacity: 0.15; }
+        }
+        
+        @keyframes staticMove {
+            0% { transform: translate(0, 0); }
+            25% { transform: translate(1px, 1px); }
+            50% { transform: translate(-1px, -1px); }
+            75% { transform: translate(1px, -1px); }
+            100% { transform: translate(-1px, 1px); }
+        }
+        
+        /* Scrolling Glitch Text Background */
+        .glitch-bg-text {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+            overflow: hidden;
+            display: none; /* Hidden as requested */
+        }
+        
+        .glitch-bg-text span {
+            position: absolute;
+            font-family: 'Courier Prime', monospace;
+            font-size: clamp(11px, 2vw, 22px);
+            color: rgba(100, 100, 100, 0.25);
+            white-space: nowrap;
+            animation: scrollText 20s linear infinite;
+        }
+        
+        @keyframes scrollText {
+            0% { transform: translateX(100vw); }
+            100% { transform: translateX(-100%); }
+        }
+        
+        /* CRT Monitor Container */
+        .crt-monitor {
+            position: relative;
+            width: min(95vw, 1400px);
+            height: 95vh;
+            max-height: 1100px;
+            background: linear-gradient(135deg, var(--crt-bezel-light) 0%, var(--crt-bezel-mid) 50%, var(--crt-bezel-dark) 100%);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 
+                0 0 50px rgba(0, 0, 0, 0.8),
+                inset 0 0 30px rgba(0, 0, 0, 0.5);
+            z-index: 1;
+        }
+        
+        /* Monitor Label */
+        .monitor-label {
+            position: absolute;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-family: 'Courier Prime', monospace;
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.3);
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+        
+        /* Power LED */
+        .power-led {
+            position: absolute;
+            top: 20px;
+            right: 30px;
+            width: 12px;
+            height: 12px;
+            background: #00ff00;
+            border-radius: 50%;
+            box-shadow: 0 0 10px #00ff00;
+            animation: powerBlink 2s infinite;
+        }
+        
+        @keyframes powerBlink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+        
+        /* CRT Screen */
+        .crt-screen {
+            width: 100%;
+            height: 100%;
+            background: #000;
+            position: relative;
+            overflow: hidden;
+            border: 3px solid #1a1a1a;
+            box-shadow: 
+                inset 0 0 100px rgba(0, 0, 0, 0.8),
+                0 0 20px rgba(0, 0, 0, 0.5);
+        }
+        
+        /* CRT Effects */
+        .crt-screen::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                repeating-linear-gradient(
+                    0deg,
+                    rgba(0, 0, 0, 0.15) 0px,
+                    rgba(0, 0, 0, 0.15) 1px,
+                    transparent 1px,
+                    transparent 3px
+                );
+            pointer-events: none;
+            z-index: 10;
+        }
+        
+        .crt-screen::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(
+                ellipse at center,
+                transparent 0%,
+                transparent 40%,
+                rgba(0, 0, 0, 0.3) 100%
+            );
+            pointer-events: none;
+            z-index: 9;
+        }
+        
+        /* Screen Glow */
+        .screen-glow {
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(
+                circle,
+                rgba(255, 255, 255, 0.05) 0%,
+                transparent 70%
+            );
+            animation: glowPulse 4s infinite;
+            pointer-events: none;
+            z-index: 8;
+        }
+        
+        @keyframes glowPulse {
+            0%, 100% { opacity: 0.3; transform: scale(1); }
+            50% { opacity: 0.6; transform: scale(1.1); }
+        }
+        
+        /* Heavy grain/noise overlay */
+        .grain-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: url('data:image/svg+xml;utf8,<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"><filter id="noiseFilter"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="4" stitchTiles="stitch"/></filter><rect width="100%" height="100%" filter="url(%23noiseFilter)"/></svg>');
+            background-repeat: repeat;
+            opacity: 0.25;
+            pointer-events: none;
+            z-index: 97;
+            animation: grainMove 0.5s steps(10) infinite;
+            mix-blend-mode: overlay;
+        }
+        
+        @keyframes grainMove {
+            0%, 100% { transform: translate(0, 0); }
+            10% { transform: translate(-5%, -10%); }
+            20% { transform: translate(-15%, 5%); }
+            30% { transform: translate(7%, -25%); }
+            40% { transform: translate(-5%, 25%); }
+            50% { transform: translate(-15%, 10%); }
+            60% { transform: translate(15%, 0%); }
+            70% { transform: translate(0%, 15%); }
+            80% { transform: translate(3%, 35%); }
+            90% { transform: translate(-10%, 10%); }
+        }
+        
+        /* Random Glitch Effect */
+        .glitch-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 11;
+            opacity: 0;
+            background: rgba(255, 255, 255, 0.03);
+        }
+        
+        .glitch-overlay.active {
+            animation: screenGlitch 0.3s;
+        }
+        
+        .crt-screen.glitch-active {
+            animation: screenGlitch 0.3s;
+        }
+        
+        @keyframes screenGlitch {
+            0% { 
+                transform: translateX(0); 
+                filter: contrast(1) brightness(1);
+                opacity: 0;
+            }
+            10% { 
+                transform: translateX(-2px); 
+                filter: contrast(1.5) brightness(1.2);
+                opacity: 0.8;
+            }
+            20% { 
+                transform: translateX(2px); 
+                filter: contrast(0.8) brightness(0.8);
+                opacity: 0.6;
+            }
+            30% { 
+                transform: translateX(-1px); 
+                filter: contrast(1.2) brightness(1.1);
+                opacity: 0.7;
+            }
+            40% { 
+                transform: translateX(1px); 
+                filter: contrast(1) brightness(1);
+                opacity: 0.5;
+            }
+            50% { 
+                transform: translateX(0); 
+                filter: contrast(1.3) brightness(1.3);
+                opacity: 0.9;
+            }
+            60% { 
+                transform: translateX(0); 
+                filter: contrast(1) brightness(1);
+                opacity: 0.3;
+            }
+            100% { 
+                transform: translateX(0); 
+                filter: contrast(1) brightness(1);
+                opacity: 0;
+            }
+        }
+        
+        /* Desktop Content */
+        .desktop-content {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-evenly;
+            padding: 40px 30px 30px 30px;
+            padding-bottom: 80px; /* Account for taskbar */
+            overflow-y: auto;
+            filter: contrast(1.05) brightness(0.98);
+        }
+        
+        .desktop-content::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                repeating-linear-gradient(0deg, transparent 0px, rgba(255, 255, 255, 0.02) 1px, transparent 2px),
+                repeating-linear-gradient(90deg, transparent 0px, rgba(255, 255, 255, 0.02) 1px, transparent 2px);
+            pointer-events: none;
+            z-index: 5;
+        }
+        
+        /* Top Section - Title */
+        .title-section {
+            text-align: center;
+        }
+        
+        .main-title {
+            font-family: 'Dela Gothic One', cursive;
+            font-size: clamp(48px, 8vw, 100px);
+            letter-spacing: 0.05em;
+            line-height: 1.2;
+            padding: 0 10px;
+            text-shadow: 
+                3px 3px 0 rgba(150, 150, 150, 0.5),
+                -2px -2px 0 rgba(50, 50, 50, 0.5);
+            /* Glitch animation removed */
+        }
+        
+        .main-title span {
+            display: inline-block;
+            margin: 0 10px;
+        }
+        
+        .japanese-text {
+            font-family: 'Dela Gothic One', cursive;
+            font-size: clamp(48px, 8vw, 100px);
+            letter-spacing: 0.05em;
+            line-height: 1.2;
+            text-align: center;
+            margin-top: 10px;
+            text-shadow: 
+                3px 3px 0 rgba(150, 150, 150, 0.5),
+                -2px -2px 0 rgba(50, 50, 50, 0.5);
+        }
+        
+        @keyframes glitchText {
+            0%, 90%, 100% { 
+                transform: translate(0);
+                text-shadow: 
+                    3px 3px 0 rgba(150, 150, 150, 0.5),
+                    -2px -2px 0 rgba(50, 50, 50, 0.5);
+            }
+            92% { 
+                transform: translate(-2px, 2px);
+                text-shadow: 
+                    5px 5px 0 rgba(150, 150, 150, 0.5),
+                    -4px -4px 0 rgba(50, 50, 50, 0.5),
+                    0 0 10px rgba(255, 255, 255, 0.3);
+            }
+            94% { 
+                transform: translate(2px, -2px);
+                text-shadow: 
+                    1px 1px 0 rgba(150, 150, 150, 0.5),
+                    -1px -1px 0 rgba(50, 50, 50, 0.5),
+                    0 0 15px rgba(255, 255, 255, 0.5);
+            }
+            96% { 
+                transform: translate(-1px, 1px);
+                text-shadow: 
+                    3px 3px 0 rgba(150, 150, 150, 0.5),
+                    -2px -2px 0 rgba(50, 50, 50, 0.5);
+            }
+        }
+        
+        /* Center Section - Skull Box */
+        .skull-section {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .skull-container {
+            position: relative;
+            width: clamp(280px, 45vw, 450px);
+            height: clamp(280px, 45vw, 450px);
+            background: #ccc;
+            border: 4px solid #888;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 
+                inset 0 0 50px rgba(0, 0, 0, 0.3),
+                4px 4px 0 rgba(0, 0, 0, 0.3),
+                -4px -4px 0 rgba(255, 255, 255, 0.3);
+            /* Glitch animation removed */
+            filter: contrast(1.1) brightness(0.95);
+        }
+        
+        .skull-container::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: url('data:image/svg+xml;utf8,<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"><filter id="noise"><feTurbulence type="fractalNoise" baseFrequency="1.2" numOctaves="3" stitchTiles="stitch"/></filter><rect width="100%" height="100%" filter="url(%23noise)"/></svg>');
+            opacity: 0.2;
+            pointer-events: none;
+            mix-blend-mode: overlay;
+            z-index: 1;
+        }
+        
+        @keyframes imageGlitch {
+            0%, 90%, 100% { 
+                filter: contrast(1) brightness(1);
+                transform: translate(0);
+            }
+            92% { 
+                filter: contrast(1.3) brightness(1.2);
+                transform: translate(-1px, 1px);
+            }
+            94% { 
+                filter: contrast(0.7) brightness(0.8);
+                transform: translate(1px, -1px);
+            }
+            96% { 
+                filter: contrast(1.1) brightness(1.1);
+                transform: translate(-1px, 0);
+            }
+        }
+        
+        .skull-container img {
+            width: 80%;
+            height: 80%;
+            object-fit: contain;
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+            position: relative;
+            z-index: 2;
+        }
+        
+        /* Bottom Section - Pledge Form */
+        .pledge-section {
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+            margin-bottom: 20px;
+        }
+        
+        .pledge-title {
+            font-family: 'Dela Gothic One', cursive;
+            font-size: clamp(28px, 5vw, 48px);
+            letter-spacing: 0.1em;
+            margin-bottom: 15px;
+        }
+        
+        .code-input-group {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .code-input {
+            width: 280px;
+            padding: 8px 12px;
+            background: var(--win95-light);
+            border: 2px inset var(--win95-gray);
+            font-family: 'Courier Prime', monospace;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: #000;
+        }
+        
+        .code-input:focus {
+            outline: none;
+            border-color: var(--win95-blue);
+        }
+        
+        .code-input.shake {
+            animation: shake 0.5s;
+        }
+        
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+            20%, 40%, 60%, 80% { transform: translateX(5px); }
+        }
+        
+        .submit-btn {
+            padding: 8px 20px;
+            background: var(--win95-gray);
+            border: 2px outset var(--win95-gray);
+            font-family: 'MS Sans Serif', Tahoma, sans-serif;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            color: #000;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .submit-btn:hover {
+            background: #d4d4d4;
+        }
+        
+        .submit-btn:active {
+            border: 2px inset var(--win95-gray);
+            padding: 9px 19px 7px 21px;
+        }
+        
+        .error-message {
+            color: #ff0000;
+            font-family: 'Courier Prime', monospace;
+            font-size: 14px;
+            min-height: 20px;
+            animation: errorBlink 1s infinite;
+        }
+        
+        .error-message.hidden {
+            display: none;
+        }
+        
+        @keyframes errorBlink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+        
+        /* Windows 95 Taskbar */
+        .taskbar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 40px;
+            background: var(--win95-gray);
+            border-top: 2px solid var(--win95-light);
+            display: flex;
+            align-items: center;
+            padding: 0 10px;
+            gap: 10px;
+            z-index: 1000;
+        }
+        
+        .start-button {
+            padding: 4px 12px;
+            background: var(--win95-gray);
+            border: 2px outset var(--win95-gray);
+            font-family: 'MS Sans Serif', Tahoma, sans-serif;
+            font-size: 11px;
+            font-weight: bold;
+            cursor: pointer;
+            color: #000;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .start-button:active {
+            border: 2px inset var(--win95-gray);
+            padding: 5px 11px 3px 13px;
+        }
+        
+        .taskbar-spacer {
+            flex: 1;
+        }
+        
+        .taskbar-clock {
+            font-family: 'Courier Prime', monospace;
+            font-size: 12px;
+            color: #000;
+            padding: 4px 8px;
+        }
+        
+        /* Dialog Overlay */
+        .dialog-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        }
+        
+        .dialog-overlay.active {
+            display: flex;
+        }
+        
+        /* Windows 95 Dialog */
+        .win95-dialog {
+            width: 100%;
+            max-width: 450px;
+            background: #000;
+            border: 2px solid #fff;
+            z-index: 2000;
+        }
+        
+        .dialog-titlebar {
+            background: #fff;
+            color: #000;
+            padding: 4px 8px;
+            font-size: 11px;
+            font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: move;
+        }
+        
+        .dialog-close {
+            width: 18px;
+            height: 18px;
+            background: #fff;
+            border: 1px solid #000;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 12px;
+            font-weight: bold;
+            color: #000;
+            line-height: 1;
+        }
+        
+        .dialog-close:active {
+            border: 1px inset #000;
+        }
+        
+        .dialog-content {
+            padding: 20px;
+            background: #000;
+            color: #fff;
+        }
+        
+        .pledge-info {
+            margin-bottom: 20px;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+        
+        .pledge-info strong {
+            font-weight: bold;
+        }
+        
+        .quantity-selector {
+            margin: 20px 0;
+        }
+        
+        .quantity-label {
+            font-size: 12px;
+            margin-bottom: 8px;
+            display: block;
+        }
+        
+        .quantity-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            justify-content: center;
+        }
+        
+        .quantity-btn {
+            width: 30px;
+            height: 30px;
+            background: #fff;
+            border: 2px solid #fff;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            color: #000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .quantity-btn:active {
+            border: 2px inset #000;
+        }
+        
+        .quantity-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .quantity-display {
+            width: 60px;
+            height: 30px;
+            background: #fff;
+            border: 2px solid #fff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 14px;
+            font-weight: bold;
+            color: #000;
+        }
+        
+        .total-display {
+            margin: 20px 0;
+            font-size: 16px;
+            font-weight: bold;
+            text-align: center;
+        }
+        
+        .dialog-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 20px;
+        }
+        
+        .dialog-btn {
+            padding: 6px 20px;
+            background: #fff;
+            border: 2px solid #fff;
+            font-family: 'MS Sans Serif', Tahoma, sans-serif;
+            font-size: 11px;
+            font-weight: bold;
+            cursor: pointer;
+            color: #000;
+            text-transform: uppercase;
+        }
+        
+        .dialog-btn:hover {
+            background: #e0e0e0;
+        }
+        
+        .dialog-btn:active {
+            border: 2px inset #000;
+            padding: 7px 19px 5px 21px;
+        }
+        
+        .dialog-btn.primary {
+            border-width: 3px;
+        }
+        
+        .dialog-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        /* Power On Flicker */
+        @keyframes powerOnFlicker {
+            0% { opacity: 0; }
+            10% { opacity: 1; }
+            20% { opacity: 0; }
+            30% { opacity: 1; }
+            40% { opacity: 0.5; }
+            50% { opacity: 1; }
+            100% { opacity: 1; }
+        }
+        
+        .crt-screen.power-on {
+            animation: powerOnFlicker 1s;
+        }
+        
+        /* Windows 95 Window Component */
+        .win95-window {
+            position: absolute;
+            background: #000;
+            border: 2px solid #fff;
+            border-top: 2px solid #fff;
+            border-right: 2px solid #fff;
+            border-bottom: 2px solid #fff;
+            border-left: 2px solid #fff;
+            min-width: 200px;
+            z-index: 10;
+            box-sizing: border-box;
+        }
+
+        /* Windows are now static - no dragging */
+
+        .win95-titlebar {
+            background: #fff;
+            color: #000;
+            padding: 2px 4px;
+            font-size: 11px;
+            font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: default;
+            user-select: none;
+            position: relative;
+            filter: contrast(1.2) brightness(0.98);
+        }
+
+        /* Make music player draggable */
+        .window-music .win95-titlebar {
+            cursor: move;
+        }
+        
+        .win95-titlebar::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: url('data:image/svg+xml;utf8,<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"><filter id="titleNoise"><feTurbulence type="fractalNoise" baseFrequency="2.0" numOctaves="4" stitchTiles="stitch"/></filter><rect width="100%" height="100%" filter="url(%23titleNoise)"/></svg>');
+            background-repeat: repeat;
+            opacity: 0.35;
+            pointer-events: none;
+            mix-blend-mode: overlay;
+        }
+        
+        .win95-titlebar-text {
+            flex: 1;
+            position: relative;
+            z-index: 1;
+        }
+
+        .win95-window-content {
+            padding: 15px;
+            background: #000;
+            color: #fff;
+            position: relative;
+        }
+        
+        .win95-window-content::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: url('data:image/svg+xml;utf8,<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"><filter id="textNoise"><feTurbulence type="fractalNoise" baseFrequency="1.8" numOctaves="5" stitchTiles="stitch"/></filter><rect width="100%" height="100%" filter="url(%23textNoise)"/></svg>');
+            background-repeat: repeat;
+            opacity: 0.5;
+            pointer-events: none;
+            z-index: 1;
+            mix-blend-mode: overlay;
+        }
+        
+        .win95-window-content::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                repeating-linear-gradient(0deg, transparent 0px, rgba(255, 255, 255, 0.05) 1px, transparent 2px),
+                repeating-linear-gradient(90deg, transparent 0px, rgba(255, 255, 255, 0.05) 1px, transparent 2px);
+            pointer-events: none;
+            z-index: 1;
+            opacity: 0.4;
+        }
+        
+        .win95-window-content > * {
+            position: relative;
+            z-index: 2;
+        }
+
+
+        /* Window 3: Skull - Center */
+        .window-skull {
+            top: calc(50% - 10px);
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 800px;
+            height: 800px;
+            z-index: 5;
+        }
+
+        .window-skull .win95-window-content {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: calc(100% - 20px);
+            padding: 15px;
+        }
+
+        .window-skull .skull-container {
+            width: 100%;
+            height: 100%;
+            max-width: 700px;
+            max-height: 700px;
+            background: transparent;
+            border: none;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: none;
+            filter: none;
+        }
+
+        .window-skull .skull-container img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+        }
+
+        /* Window 4: THE PLEDGE */
+        .window-pledge {
+            top: calc(50% + 340px);
+            left: calc(50% - 450px);
+            transform: translateY(-50%);
+            width: 336px;
+            z-index: 6;
+        }
+
+        .window-pledge .win95-window-content {
+            text-align: center;
+            font-family: 'Dela Gothic One', cursive;
+            font-size: clamp(28.8px, 4.2vw, 43.2px);
+            padding: 25px;
+            filter: contrast(1.2) brightness(0.98);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        /* Window 5: Enter Code - Bottom Center */
+        .window-code {
+            top: calc(50% + 440px);
+            left: calc(50% - 100px);
+            transform: translateY(-50%);
+            width: 968px;
+            z-index: 20;
+        }
+
+        .window-code .win95-window-content {
+            padding: 20px;
+            background: #000;
+            color: #fff;
+        }
+        
+        .window-code .win95-titlebar {
+            background: #fff;
+            color: #000;
+        }
+        
+        .window-code .win95-titlebar-text {
+            color: #000;
+        }
+        
+        /* Flicker animation for code box */
+        .window-code {
+            animation: subtleFlicker 3s infinite;
+        }
+        
+        @keyframes subtleFlicker {
+            0%, 100% { opacity: 1; }
+            48% { opacity: 1; }
+            49% { opacity: 0.95; }
+            50% { opacity: 1; }
+            51% { opacity: 0.98; }
+            52% { opacity: 1; }
+        }
+
+        .window-code .code-input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .window-code .code-input {
+            width: 100%;
+            padding: 12px 16px;
+            background: #fff;
+            border: 2px inset #c0c0c0;
+            font-family: 'Courier Prime', monospace;
+            font-size: 18px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: #000;
+            box-sizing: border-box;
+        }
+
+        .window-code .code-input:focus {
+            outline: none;
+            border-color: #fff;
+        }
+
+        .window-code .code-input.shake {
+            animation: shake 0.5s;
+        }
+
+        .window-code .submit-btn {
+            padding: 12px 20px;
+            background: #c0c0c0;
+            border: 2px outset #c0c0c0;
+            font-family: 'MS Sans Serif', Tahoma, sans-serif;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            color: #000;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            width: 100%;
+        }
+        
+        .window-code .submit-btn:hover {
+            background: #d4d4d4;
+        }
+        
+        .window-code .submit-btn:active {
+            border: 2px inset #c0c0c0;
+            padding: 13px 19px 11px 21px;
+        }
+
+        .window-code .submit-btn:hover {
+            background: #d4d4d4;
+        }
+
+        .window-code .submit-btn:active {
+            border: 2px inset #c0c0c0;
+            padding: 9px 19px 7px 21px;
+        }
+
+        .window-code .error-message {
+            color: #ff0000;
+            font-family: 'Courier Prime', monospace;
+            font-size: 14px;
+            min-height: 20px;
+            margin-top: 10px;
+            text-align: center;
+        }
+
+        .window-code .error-message.hidden {
+            display: none;
+        }
+
+        /* Window 6: Clouds - Mid Left */
+        .window-clouds {
+            top: calc(50% + 90px);
+            left: calc(50% - 750px);
+            transform: translateY(-50%);
+            width: 400px;
+            height: 400px;
+            z-index: 4;
+        }
+
+        .window-clouds .win95-window-content {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: calc(100% - 20px);
+            padding: 15px;
+        }
+
+        .window-clouds .clouds-container {
+            width: 100%;
+            height: 100%;
+            background: transparent;
+            border: none;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .window-clouds .clouds-container img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+        }
+
+        /* Window 7: GF - Top Right */
+        .window-gf {
+            top: calc(50% - 310px);
+            right: calc(50% - 500px);
+            transform: translateY(-50%);
+            width: 200px;
+            height: 300px;
+            z-index: 7;
+        }
+
+        .window-gf .win95-window-content {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: calc(100% - 20px);
+            padding: 15px;
+        }
+
+        .window-gf .gf-container {
+            width: 100%;
+            height: 100%;
+            background: transparent;
+            border: none;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .window-gf .gf-container img {
+            width: 80%;
+            height: 80%;
+            object-fit: contain;
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+        }
+
+        /* Window 8: Homie - Bottom Right */
+        /* Window 9: Japanese Text (デッドビット・ネーション) - Top Left */
+        .window-japanese-text {
+            top: calc(50% - 410px);
+            left: calc(50% - 600px);
+            transform: translateY(-50%);
+            width: 675px;
+            height: 300px;
+            z-index: 10;
+        }
+
+        .window-japanese-text .win95-window-content {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: calc(100% - 20px);
+            padding: 15px;
+        }
+
+        .window-japanese-text .japanese-text-container {
+            width: 100%;
+            height: 100%;
+            background: transparent;
+            border: none;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .window-japanese-text .japanese-text-container img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+        }
+
+        /* Window 11: Music Player */
+        .window-music {
+            top: calc(50% - 50px);
+            left: calc(50% + 300px);
+            transform: translateY(-50%);
+            width: 300px;
+            height: 450px;
+            z-index: 12;
+            border-bottom: 2px solid #fff !important;
+        }
+
+        .window-music .win95-window-content {
+            display: flex;
+            flex-direction: column;
+            padding: 15px;
+            gap: 12px;
+            background: #000;
+            box-sizing: border-box;
+            height: calc(100% - 20px);
+            overflow: hidden;
+        }
+
+        .window-music .music-album-art {
+            width: 100%;
+            aspect-ratio: 1;
+            background: #1a1a1a;
+            border: 2px solid #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .window-music .music-album-art::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: url('data:image/svg+xml;utf8,<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"><filter id="albumNoise"><feTurbulence type="fractalNoise" baseFrequency="1.5" numOctaves="4" stitchTiles="stitch"/></filter><rect width="100%" height="100%" filter="url(%23albumNoise)"/></svg>');
+            background-repeat: repeat;
+            opacity: 0.3;
+            pointer-events: none;
+            mix-blend-mode: overlay;
+            z-index: 1;
+        }
+
+        .window-music .music-album-art img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            filter: grayscale(100%);
+            position: relative;
+            z-index: 0;
+        }
+
+        .window-music .music-info {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            overflow: hidden;
+            position: relative;
+            width: 100%;
+        }
+
+        .window-music .music-title {
+            font-size: 14px;
+            font-weight: bold;
+            color: #fff;
+            font-family: 'MS Sans Serif', Tahoma, sans-serif;
+            white-space: nowrap;
+            display: inline-block;
+            animation: scrollText 8s linear infinite;
+            padding-right: 20px;
+        }
+
+        .window-music .music-artist {
+            font-size: 11px;
+            color: #aaa;
+            font-family: 'MS Sans Serif', Tahoma, sans-serif;
+            white-space: nowrap;
+            display: inline-block;
+            animation: scrollText 8s linear infinite;
+            padding-right: 20px;
+        }
+
+        @keyframes scrollText {
+            0% {
+                transform: translateX(100%);
+            }
+            100% {
+                transform: translateX(-100%);
+            }
+        }
+
+        .window-music .music-progress {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .window-music .music-progress-bar-container {
+            width: 100%;
+            height: 4px;
+            background: #333;
+            border: 1px solid #666;
+            position: relative;
+            cursor: pointer;
+        }
+
+        .window-music .music-progress-bar {
+            height: 100%;
+            background: #fff;
+            width: 30%;
+            transition: width 0.1s linear;
+        }
+
+        .window-music .music-progress-time {
+            display: flex;
+            justify-content: space-between;
+            font-size: 10px;
+            color: #aaa;
+            font-family: 'MS Sans Serif', Tahoma, sans-serif;
+        }
+
+        .window-music .music-controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .window-music .music-btn {
+            width: 32px;
+            height: 32px;
+            background: #fff;
+            border: 2px outset #fff;
+            font-family: 'MS Sans Serif', Tahoma, sans-serif;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            color: #000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+            line-height: 1;
+        }
+
+        .window-music .music-btn:hover {
+            background: #e0e0e0;
+        }
+
+        .window-music .music-btn:active {
+            border: 2px inset #000;
+        }
+
+        .window-music .music-btn.play-pause {
+            width: 40px;
+            height: 40px;
+            font-size: 14px;
+        }
+
+        .window-music .music-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .win95-window {
+                position: relative;
+                margin: 10px;
+                width: calc(100% - 20px) !important;
+                left: 0 !important;
+                right: auto !important;
+                top: auto !important;
+                bottom: auto !important;
+                transform: none !important;
+            }
+            
+            .window-pledge {
+                margin-bottom: 20px;
+            }
+            
+            .window-skull,
+            .window-clouds,
+            .window-gf {
+                height: 200px;
+                width: 200px !important;
+            }
+            
+            .window-japanese-text {
+                height: 200px;
+            }
+            
+            .window-code {
+                margin-bottom: 60px;
+            }
+            
+            .taskbar {
+                height: 35px;
+                font-size: 10px;
+            }
+            
+            .win95-dialog {
+                max-width: 90vw;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Background Music -->
+    <audio id="backgroundMusic" loop>
+        <source src="assets/SiteMusic.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="backgroundMusic2" loop>
+        <source src="assets/SiteMusic2.mp3" type="audio/mpeg">
+    </audio>
+    
+    <!-- TV Screen Effects -->
+    <div class="tv-dust"></div>
+    <div class="tv-static"></div>
+    <div class="static-line"></div>
+
+    <!-- Window 3: Skull -->
+    <div class="win95-window window-skull ">
+        <div class="win95-titlebar">
+            <span class="win95-titlebar-text">X</span>
+        </div>
+        <div class="win95-window-content">
+            <div class="skull-container">
+                <img src="assets/skull2.png" alt="Skull" onerror="if(this.src.indexOf('skull2') !== -1) { console.log('skull2.png not found, trying skull.png'); this.src='assets/skull.png'; } else { this.style.display='none'; this.parentElement.innerHTML='<div style=\'font-size:48px;color:#000;\'>💀</div>'; }">
+            </div>
+        </div>
+    </div>
+
+    <!-- Window 4: THE PLEDGE -->
+    <div class="win95-window window-pledge ">
+        <div class="win95-titlebar">
+            <span class="win95-titlebar-text">X</span>
+        </div>
+        <div class="win95-window-content">
+            THE PLEDGE<br>誓約書
+        </div>
+    </div>
+
+    <!-- Window 5: Enter Code -->
+    <div class="win95-window window-code ">
+        <div class="win95-titlebar">
+            <span class="win95-titlebar-text">X</span>
+        </div>
+        <div class="win95-window-content">
+            <div class="code-input-group">
+                <input 
+                    type="text" 
+                    class="code-input" 
+                    id="codeInput" 
+                    placeholder="enter your pledge code"
+                    autocomplete="off"
+                >
+                <button class="submit-btn" id="submitBtn">SUBMIT</button>
+            </div>
+            <div class="error-message hidden" id="errorMessage">
+                YOU ARE NOT PERMITTED TO PLEDGE
+            </div>
+        </div>
+    </div>
+
+    <!-- Window 6: Clouds -->
+    <div class="win95-window window-clouds ">
+        <div class="win95-titlebar">
+            <span class="win95-titlebar-text">X</span>
+        </div>
+        <div class="win95-window-content">
+            <div class="clouds-container">
+                <img src="assets/Clouds.png" alt="Clouds" onerror="this.style.display='none';">
+            </div>
+        </div>
+    </div>
+
+    <!-- Window 7: GF -->
+    <div class="win95-window window-gf ">
+        <div class="win95-titlebar">
+            <span class="win95-titlebar-text">X</span>
+        </div>
+        <div class="win95-window-content">
+            <div class="gf-container">
+                <img src="assets/GF.png" alt="GF" onerror="console.error('GF.png not found'); this.style.display='none';">
+            </div>
+        </div>
+    </div>
+
+    <!-- Window 9: Japanese Text (デッドビット・ネーション) -->
+    <div class="win95-window window-japanese-text ">
+        <div class="win95-titlebar">
+            <span class="win95-titlebar-text">X</span>
+        </div>
+        <div class="win95-window-content">
+            <div class="japanese-text-container">
+                <img src="assets/image 83 (2).png" alt="デッドビット・ネーション" onerror="console.error('Japanese text image not found'); this.style.display='none';">
+            </div>
+        </div>
+    </div>
+
+    <!-- Window 11: Music Player -->
+    <div class="win95-window window-music" id="musicPlayerWindow">
+        <div class="win95-titlebar">
+            <span class="win95-titlebar-text">X</span>
+        </div>
+        <div class="win95-window-content">
+            <div class="music-album-art">
+                <img src="assets/Homie.png" alt="Album Art" onerror="console.error('Homie.png not found'); this.style.display='none';">
+            </div>
+            <div class="music-info">
+                <div class="music-title" id="musicTitle">$homie</div>
+                <div class="music-artist" id="musicArtist">$homie</div>
+            </div>
+            <div class="music-progress">
+                <div class="music-progress-bar-container" id="progressBarContainer">
+                    <div class="music-progress-bar" id="progressBar"></div>
+                </div>
+                <div class="music-progress-time">
+                    <span id="currentTime">1:25</span>
+                    <span id="totalTime">4:20</span>
+                </div>
+            </div>
+            <div class="music-controls">
+                <button class="music-btn" id="musicPrevBtn">«</button>
+                <button class="music-btn play-pause" id="musicPlayPauseBtn">▶</button>
+                <button class="music-btn" id="musicNextBtn">»</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Windows 95 Taskbar -->
+    <div class="taskbar">
+        <button class="start-button" id="startButton">
+            <span>💀</span>
+            <span>Start</span>
+        </button>
+        <div class="taskbar-spacer"></div>
+        <div class="taskbar-clock" id="taskbarClock"></div>
+    </div>
+    
+    <!-- Pledge Dialog -->
+    <div class="dialog-overlay" id="dialogOverlay">
+        <div class="win95-dialog">
+            <div class="dialog-titlebar">
+                <span>Deadbit Pledge</span>
+                <button class="dialog-close" id="dialogClose">×</button>
+            </div>
+            <div class="dialog-content">
+                <div class="pledge-info">
+                    <div><strong>Deadbit pledge - $20</strong></div>
+                    <div>Available: <span id="availableCount">18</span> / 25</div>
+                    <div>Max quantity: 5</div>
+                </div>
+                
+                <div class="quantity-selector">
+                    <label class="quantity-label">Select Quantity:</label>
+                    <div class="quantity-controls">
+                        <button class="quantity-btn" id="quantityMinus">-</button>
+                        <div class="quantity-display" id="quantityDisplay">1</div>
+                        <button class="quantity-btn" id="quantityPlus">+</button>
+                    </div>
+                </div>
+                
+                <div class="total-display">
+                    Total: $<span id="totalAmount">20</span>
+                </div>
+                
+                <div class="dialog-actions">
+                    <button class="dialog-btn" id="cancelBtn">Cancel</button>
+                    <button class="dialog-btn primary" id="pledgeBtn">PLEDGE</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // ============================================================================
+        // MOONPAY CONFIGURATION
+        // ============================================================================
+        const MOONPAY_CONFIG = {
+            payLinkUrl: 'https://moonpay.hel.io/pay/69640c5622ae40537fc93282'
+        };
+        
+        // ============================================================================
+        // STATE MANAGEMENT
+        // ============================================================================
+        const validCodes = ['DEADBIT', 'CORRUPT', 'GLITCH99', 'NATION'];
+        let availablePledges = 18;
+        let moonPayWindow = null;
+        
+        // ============================================================================
+        // DOM ELEMENTS
+        // ============================================================================
+        const codeInput = document.getElementById('codeInput');
+        const submitBtn = document.getElementById('submitBtn');
+        const errorMessage = document.getElementById('errorMessage');
+        const dialogOverlay = document.getElementById('dialogOverlay');
+        const dialogClose = document.getElementById('dialogClose');
+        const cancelBtn = document.getElementById('cancelBtn');
+        const pledgeBtn = document.getElementById('pledgeBtn');
+        const availableCount = document.getElementById('availableCount');
+        const startButton = document.getElementById('startButton');
+        const taskbarClock = document.getElementById('taskbarClock');
+        const musicPlayPauseBtn = document.getElementById('musicPlayPauseBtn');
+        const musicPrevBtn = document.getElementById('musicPrevBtn');
+        const musicNextBtn = document.getElementById('musicNextBtn');
+        const backgroundMusic = document.getElementById('backgroundMusic');
+        const backgroundMusic2 = document.getElementById('backgroundMusic2');
+        const progressBar = document.getElementById('progressBar');
+        const progressBarContainer = document.getElementById('progressBarContainer');
+        const currentTimeDisplay = document.getElementById('currentTime');
+        const totalTimeDisplay = document.getElementById('totalTime');
+        const musicTitle = document.getElementById('musicTitle');
+        const musicArtist = document.getElementById('musicArtist');
+        const musicAlbumArt = document.querySelector('.music-album-art img');
+        
+        // Song playlist
+        const songs = [
+            { audio: backgroundMusic, title: '$homie', artist: '$homie', image: 'assets/Homie.png' },
+            { audio: backgroundMusic2, title: 'Welcome Home', artist: '$homie', image: 'assets/homie2.png' }
+        ];
+        let currentSongIndex = 0;
+        let currentAudio = songs[currentSongIndex].audio;
+        
+        // ============================================================================
+        // INITIALIZATION
+        // ============================================================================
+        function init() {
+            // Start live clock
+            updateClock();
+            setInterval(updateClock, 1000);
+            
+            // Setup music controls
+            function setupAudio(audio) {
+                if (!audio) return;
+                
+                audio.volume = 0.5; // Set volume to 50%
+                
+                // Update total time when metadata loads
+                audio.addEventListener('loadedmetadata', () => {
+                    if (totalTimeDisplay && audio === currentAudio) {
+                        totalTimeDisplay.textContent = formatTime(audio.duration);
+                    }
+                });
+                
+                // Update progress bar and time
+                audio.addEventListener('timeupdate', () => {
+                    if (audio === currentAudio) {
+                        updateProgress();
+                    }
+                });
+                
+                // Update button states based on music state
+                audio.addEventListener('play', () => {
+                    if (audio === currentAudio) {
+                        updateMusicButtons(true);
+                    }
+                });
+                
+                audio.addEventListener('pause', () => {
+                    if (audio === currentAudio) {
+                        updateMusicButtons(false);
+                    }
+                });
+                
+                audio.addEventListener('ended', () => {
+                    if (audio === currentAudio) {
+                        updateMusicButtons(false);
+                    }
+                });
+            }
+            
+            // Setup both audio elements
+            setupAudio(backgroundMusic);
+            setupAudio(backgroundMusic2);
+            
+            // Initialize button states
+            updateMusicButtons(false);
+            updateSongDisplay();
+            
+            // Try to play first song on load (may be blocked by browser)
+            if (currentAudio) {
+                currentAudio.play().catch(error => {
+                    console.log('Music autoplay blocked:', error);
+                    updateMusicButtons(false);
+                });
+            }
+            
+            function switchSong(newIndex) {
+                if (newIndex < 0 || newIndex >= songs.length) return;
+                
+                // Pause current song
+                if (currentAudio) {
+                    currentAudio.pause();
+                    currentAudio.currentTime = 0;
+                }
+                
+                // Switch to new song
+                currentSongIndex = newIndex;
+                currentAudio = songs[currentSongIndex].audio;
+                
+                // Update display
+                updateSongDisplay();
+                updateProgress();
+                
+                // Play new song if previous was playing
+                const wasPlaying = !currentAudio.paused;
+                if (wasPlaying) {
+                    currentAudio.play().catch(error => {
+                        console.log('Play error:', error);
+                    });
+                }
+            }
+            
+            function updateSongDisplay() {
+                if (musicTitle) {
+                    musicTitle.textContent = songs[currentSongIndex].title;
+                }
+                if (musicArtist) {
+                    musicArtist.textContent = songs[currentSongIndex].artist;
+                }
+                if (musicAlbumArt && songs[currentSongIndex].image) {
+                    musicAlbumArt.src = songs[currentSongIndex].image;
+                }
+                if (currentAudio && totalTimeDisplay) {
+                    if (currentAudio.duration) {
+                        totalTimeDisplay.textContent = formatTime(currentAudio.duration);
+                    }
+                }
+            }
+            
+            // Music control event listeners
+            if (musicPlayPauseBtn) {
+                musicPlayPauseBtn.addEventListener('click', () => {
+                    if (currentAudio) {
+                        if (currentAudio.paused) {
+                            currentAudio.play().catch(error => {
+                                console.log('Play error:', error);
+                            });
+                        } else {
+                            currentAudio.pause();
+                        }
+                    }
+                });
+            }
+            
+            if (musicPrevBtn) {
+                musicPrevBtn.addEventListener('click', () => {
+                    const newIndex = (currentSongIndex - 1 + songs.length) % songs.length;
+                    switchSong(newIndex);
+                });
+            }
+            
+            if (musicNextBtn) {
+                musicNextBtn.addEventListener('click', () => {
+                    const newIndex = (currentSongIndex + 1) % songs.length;
+                    switchSong(newIndex);
+                });
+            }
+            
+            // Progress bar click to seek
+            if (progressBarContainer) {
+                progressBarContainer.addEventListener('click', (e) => {
+                    if (currentAudio && currentAudio.duration) {
+                        const rect = progressBarContainer.getBoundingClientRect();
+                        const clickX = e.clientX - rect.left;
+                        const percentage = clickX / rect.width;
+                        currentAudio.currentTime = percentage * currentAudio.duration;
+                    }
+                });
+            }
+            
+            // Initialize music player dragging
+            initMusicPlayerDragging();
+            
+            // Reset music player position if it's off-screen
+            resetMusicPlayerPosition();
+            
+            // Check URL parameters for payment status
+            checkPaymentStatus();
+        }
+        
+        // ============================================================================
+        // MUSIC PLAYER DRAGGING
+        // ============================================================================
+        function resetMusicPlayerPosition() {
+            const musicWindow = document.getElementById('musicPlayerWindow');
+            if (!musicWindow) return;
+            
+            const rect = musicWindow.getBoundingClientRect();
+            const viewportWidth = window.innerWidth;
+            const viewportHeight = window.innerHeight;
+            
+            // Check if window is completely off-screen or partially off-screen
+            const isOffScreen = rect.right < 0 || rect.left > viewportWidth || 
+                               rect.bottom < 0 || rect.top > viewportHeight;
+            
+            if (isOffScreen || rect.left < 0 || rect.top < 0 || 
+                rect.right > viewportWidth || rect.bottom > viewportHeight) {
+                // Reset to default position
+                musicWindow.style.left = '';
+                musicWindow.style.top = '';
+                musicWindow.style.transform = '';
+            }
+        }
+        
+        function initMusicPlayerDragging() {
+            const musicWindow = document.getElementById('musicPlayerWindow');
+            if (!musicWindow) return;
+            
+            const titlebar = musicWindow.querySelector('.win95-titlebar');
+            if (!titlebar) return;
+            
+                let isDragging = false;
+            let currentX = 0;
+            let currentY = 0;
+            let initialX = 0;
+            let initialY = 0;
+                let xOffset = 0;
+                let yOffset = 0;
+
+                titlebar.addEventListener('mousedown', dragStart);
+                document.addEventListener('mousemove', drag);
+                document.addEventListener('mouseup', dragEnd);
+
+                function dragStart(e) {
+                    if (e.target === titlebar || titlebar.contains(e.target)) {
+                    const rect = musicWindow.getBoundingClientRect();
+                    initialX = e.clientX - rect.left - xOffset;
+                    initialY = e.clientY - rect.top - yOffset;
+
+                            isDragging = true;
+                    // Bring music window to front
+                            document.querySelectorAll('.win95-window').forEach(w => {
+                        if (w !== musicWindow) {
+                            const currentZ = parseInt(window.getComputedStyle(w).zIndex) || 10;
+                            w.style.zIndex = currentZ.toString();
+                        }
+                            });
+                    musicWindow.style.zIndex = '1000';
+                    }
+                }
+
+                function drag(e) {
+                    if (isDragging) {
+                        e.preventDefault();
+                        currentX = e.clientX - initialX;
+                        currentY = e.clientY - initialY;
+                    
+                    // Get window dimensions
+                    const windowWidth = musicWindow.offsetWidth;
+                    const windowHeight = musicWindow.offsetHeight;
+                    const viewportWidth = window.innerWidth;
+                    const viewportHeight = window.innerHeight;
+                    
+                    // Constrain to viewport bounds
+                    const minX = 0;
+                    const minY = 0;
+                    const maxX = viewportWidth - windowWidth;
+                    const maxY = viewportHeight - windowHeight;
+                    
+                    currentX = Math.max(minX, Math.min(maxX, currentX));
+                    currentY = Math.max(minY, Math.min(maxY, currentY));
+
+                        xOffset = currentX;
+                        yOffset = currentY;
+
+                    // Update position
+                    musicWindow.style.left = currentX + 'px';
+                    musicWindow.style.top = currentY + 'px';
+                    musicWindow.style.transform = 'none';
+                    }
+                }
+
+                function dragEnd(e) {
+                if (isDragging) {
+                    initialX = currentX;
+                    initialY = currentY;
+                    isDragging = false;
+                }
+            }
+        }
+        
+        function updateMusicButtons(isPlaying) {
+            if (musicPlayPauseBtn) {
+                if (isPlaying) {
+                    musicPlayPauseBtn.textContent = '||';
+                } else {
+                    musicPlayPauseBtn.textContent = '▶';
+                }
+            }
+        }
+        
+        function formatTime(seconds) {
+            if (!seconds || isNaN(seconds)) return '0:00';
+            const mins = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${mins}:${secs.toString().padStart(2, '0')}`;
+        }
+        
+        function updateProgress() {
+            if (currentAudio && progressBar && currentTimeDisplay) {
+                const currentTime = currentAudio.currentTime;
+                const duration = currentAudio.duration;
+                
+                if (duration) {
+                    const percentage = (currentTime / duration) * 100;
+                    progressBar.style.width = percentage + '%';
+                    currentTimeDisplay.textContent = formatTime(currentTime);
+                }
+            }
+        }
+        
+        // ============================================================================
+        // WINDOW DRAGGING
+        // ============================================================================
+        
+        // ============================================================================
+        // CLOCK FUNCTIONALITY
+        // ============================================================================
+        function updateClock() {
+            const now = new Date();
+            const hours = now.getHours() % 12 || 12;
+            const minutes = now.getMinutes().toString().padStart(2, '0');
+            const seconds = now.getSeconds().toString().padStart(2, '0');
+            const ampm = now.getHours() >= 12 ? 'PM' : 'AM';
+            taskbarClock.textContent = `${hours}:${minutes}:${seconds} ${ampm}`;
+        }
+        
+        // ============================================================================
+        // GLITCH EFFECTS
+        // ============================================================================
+        function triggerScreenGlitch() {
+            // Glitch effect removed - no longer needed
+        }
+        
+        // ============================================================================
+        // SECRET CODE VALIDATION
+        // ============================================================================
+        function validateCode(code) {
+            return validCodes.includes(code.toUpperCase().trim());
+        }
+        
+        function handleCodeSubmit() {
+            const code = codeInput.value.trim();
+            errorMessage.classList.add('hidden');
+            
+            if (validateCode(code)) {
+                // Go straight to MoonPay Pay Link
+                codeInput.value = '';
+                openMoonPayCheckout();
+            } else {
+                showError();
+            }
+        }
+        
+        function openMoonPayCheckout() {
+            // Open MoonPay Pay Link in popup
+            const width = 500;
+            const height = 700;
+            const left = (window.innerWidth - width) / 2;
+            const top = (window.innerHeight - height) / 2;
+            
+            moonPayWindow = window.open(
+                MOONPAY_CONFIG.payLinkUrl,
+                'MoonPay Checkout',
+                `width=${width},height=${height},left=${left},top=${top},resizable=yes,scrollbars=yes`
+            );
+            
+            // Monitor window closure
+            const checkClosed = setInterval(() => {
+                if (moonPayWindow.closed) {
+                    clearInterval(checkClosed);
+                    // Check if payment was successful via URL parameters
+                    checkPaymentStatus();
+                }
+            }, 500);
+        }
+        
+        function showError() {
+            errorMessage.classList.remove('hidden');
+            codeInput.classList.add('shake');
+            triggerScreenGlitch();
+            setTimeout(() => {
+                codeInput.classList.remove('shake');
+            }, 500);
+        }
+        
+        // ============================================================================
+        // MOONPAY INTEGRATION
+        // ============================================================================
+        
+        function checkPaymentStatus() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const status = urlParams.get('status');
+            
+            if (status === 'success') {
+                completePledge();
+                // Clear URL parameter
+                window.history.replaceState({}, document.title, window.location.pathname);
+            } else if (status === 'cancelled') {
+                alert('Payment cancelled.');
+                window.history.replaceState({}, document.title, window.location.pathname);
+            }
+        }
+        
+        function completePledge() {
+            availablePledges -= 1;
+            availableCount.textContent = availablePledges;
+            alert('💀 PLEDGE CONFIRMED 💀');
+        }
+        
+        
+        // ============================================================================
+        // EVENT LISTENERS
+        // ============================================================================
+        submitBtn.addEventListener('click', handleCodeSubmit);
+        
+        codeInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                handleCodeSubmit();
+            }
+        });
+        
+        
+        startButton.addEventListener('click', () => {
+            alert('ACCESS DENIED');
+        });
+        
+        
+        // ============================================================================
+        // START APPLICATION
+        // ============================================================================
+        init();
+    </script>
+</body>
+</html>
+
