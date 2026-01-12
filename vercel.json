@@ -1,19 +1,8 @@
 {
-  "version": 2,
-  "builds": [
+  "rewrites": [
     {
-      "src": "deadbitnation-pledge.html",
-      "use": "@vercel/static"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/deadbitnation-pledge.html",
-      "dest": "/deadbitnation-pledge.html"
-    },
-    {
-      "src": "/",
-      "dest": "/deadbitnation-pledge.html"
+      "source": "/",
+      "destination": "/deadbitnation-pledge.html"
     }
   ],
   "headers": [
@@ -22,7 +11,7 @@
       "headers": [
         {
           "key": "Cache-Control",
-          "value": "public, max-age=0, must-revalidate"
+          "value": "no-cache, no-store, must-revalidate"
         }
       ]
     }
